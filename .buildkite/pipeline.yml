@@ -1,0 +1,51 @@
+steps:
+  - label: ":mag: Build context"
+    command: |
+      echo "build.source          = $BUILDKITE_SOURCE"
+      echo "build.branch          = $BUILDKITE_BRANCH"
+      echo "build.pull_request.id = $BUILDKITE_PULL_REQUEST"
+      echo "build.pr.base_branch  = $BUILDKITE_PULL_REQUEST_BASE_BRANCH"
+      echo "build.pr.repo         = $BUILDKITE_PULL_REQUEST_REPO"
+      echo "build.triggered_from  = $BUILDKITE_TRIGGERED_FROM_BUILD_ID"
+    agents:
+      queue: staging-us
+  - label: ":git: Push to main"
+    command: echo "Running — direct push or merged PR to main"
+    if: build.branch == "main" && build.source == "webhook" && build.pull_request.id == null
+    agents:
+      queue: staging-us
+  - label: ":git: Feature branch push (no PR)"
+    command: echo "Running — branch push, no open PR"
+    if: build.branch != "main" && build.source == "webhook" && build.pull_request.id == null
+    agents:
+      queue: staging-us
+  - label: ":github: PR build"
+    command: echo "Running — pull request build"
+    if: build.pull_request.id != null
+    agents:
+      queue: staging-us
+  - label: ":bust_in_silhouette: Manual UI/API build"
+    command: echo "Running — manually triggered"
+    if: build.source == "ui" || build.source == "api"
+    agents:
+      queue: staging-us
+  - label: ":rocket: Triggered from another pipeline"
+    command: echo "Running — trigger_job"
+    if: build.source == "trigger_job"
+    agents:
+      queue: staging-us
+  - label: ":clock1: Scheduled build"
+    command: echo "Running — schedule"
+    if: build.source == "schedule"
+    agents:
+      queue: staging-us
+  - label: ":white_check_mark: filter_condition A — build.pull_request.id != null"
+    command: echo "PASSES this filter"
+    if: build.pull_request.id != null
+    agents:
+      queue: staging-us
+  - label: ":white_check_mark: filter_condition B — build.source != 'webhook' || build.pull_request.id != null"
+    command: echo "PASSES this filter"
+    if: build.source != "webhook" || build.pull_request.id != null
+    agents:
+      queue: staging-us
